@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yerassyl Izbassar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Press+Start+2P&display=swap">
+<style>
+  /* Concept: a top-down steppe village you walk through; each building is a section of the CV. Flag blue and gold on dry-grass ground. Single committed look, no dark variant. */
+  :root {
+    --steppe: #d8c78a;
+    --path: #e7dba9;
+    --edge: #c9b673;
+    --ink: #1c2b33;
+    --blue: #0098b4;
+    --blue-dk: #006a80;
+    --gold: #f2b90f;
+    --paper: #fbf6e4;
+    --card: #fffdf3;
+    --muted: #55656b;
+    --font-d: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+    --font-b: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 16px/1.55 var(--font-b);
+    padding-block: 20px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 16px; }
+  header h1 { font: 400 clamp(14px, 3.8vw, 24px)/1.4 var(--font-d); margin: 0 0 8px; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 62ch; }
+
+  .hud { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: flex; align-items: center; gap: 8px; border: 2px solid var(--ink); background: var(--card); padding: 5px 10px; min-width: 0; }
+  .chip .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .chip b { font: 400 12px/1 var(--font-d); font-variant-numeric: tabular-nums; }
+  .bar { display: block; width: 84px; height: 10px; border: 2px solid var(--ink); background: var(--paper); }
+  .bar i { display: block; height: 100%; width: 0; background: var(--blue); transition: width .25s steps(6); }
+
+  .stage { position: relative; border: 3px solid var(--ink); background: var(--steppe); aspect-ratio: 3 / 2; box-shadow: 5px 5px 0 var(--ink); touch-action: manipulation; }
+  .stage canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+  .tag {
+    position: absolute; transform: translate(-50%, -100%);
+    font: 700 clamp(9px, 1.9vw, 12px)/1.2 var(--font-b);
+    background: var(--ink); color: var(--paper); border: 0; padding: 3px 7px; cursor: pointer; white-space: nowrap;
+  }
+  .tag:hover { background: var(--blue-dk); }
+  .tag.seen::after { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--gold); margin-left: 6px; }
+
+  .ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .hint { margin: 0; flex: 1 1 240px; min-width: 0; color: var(--muted); font-size: 14px; }
+  .btn {
+    font: 700 14px/1 var(--font-b); color: var(--ink); background: var(--gold);
+    border: 2px solid var(--ink); padding: 10px 14px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink);
+  }
+  .btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn:disabled { background: var(--path); color: var(--muted); box-shadow: none; cursor: default; }
+  .btn.ghost { background: var(--card); }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  .pad { display: none; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(2, 56px); gap: 6px; justify-content: center; user-select: none; -webkit-user-select: none; }
+  .pad button { font: 700 22px/1 var(--font-b); border: 2px solid var(--ink); background: var(--card); color: var(--ink); touch-action: none; box-shadow: 3px 3px 0 var(--ink); }
+  .pad button:active { background: var(--gold); }
+  .pad [data-k="up"] { grid-column: 2; grid-row: 1; }
+  .pad [data-k="left"] { grid-column: 1; grid-row: 2; }
+  .pad [data-k="down"] { grid-column: 2; grid-row: 2; }
+  .pad [data-k="right"] { grid-column: 3; grid-row: 2; }
+  @media (hover: none), (pointer: coarse) { .pad { display: grid; } }
+
+  h2 { font: 400 clamp(12px, 2.6vw, 16px)/1.5 var(--font-d); margin: 16px 0 0; }
+  .lead { margin: 0; color: var(--muted); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+  .card { border: 2px solid var(--ink); background: var(--card); padding: 16px; min-width: 0; }
+  .card h3 { font: 400 12px/1.5 var(--font-d); margin: 0 0 12px; }
+  .card p { margin: 0 0 8px; }
+  .card p:last-child { margin-bottom: 0; }
+  .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .rows li { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+  .rows b { font-weight: 600; }
+  .rows span { color: var(--muted); }
+  .plain { margin: 0 0 8px; padding-left: 20px; }
+  .skills { margin: 0; display: grid; gap: 12px; }
+  .skills dt { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .skills dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .skills dd span { border: 2px solid var(--ink); background: var(--path); padding: 1px 8px; font-size: 14px; }
+  a { color: var(--blue-dk); text-underline-offset: 3px; overflow-wrap: anywhere; }
+  .mail { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .mail span { font-weight: 600; overflow-wrap: anywhere; }
+
+  .overlay {
+    position: fixed; inset: 0; z-index: 50; background: rgba(28, 43, 51, .62);
+    display: flex; align-items: center; justify-content: center;
+    padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  .dlg { width: min(560px, 100%); max-height: 100%; overflow: auto; background: var(--paper); border: 3px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 16px 18px 20px; }
+  .dlg:focus { outline: none; }
+  .dhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .dhead h2 { margin: 0; font-size: 13px; }
+
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+    background: var(--ink); color: var(--paper); border: 2px solid var(--gold); padding: 8px 14px; font-weight: 600; font-size: 14px; max-width: calc(100% - 32px); text-align: center;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Yerassyl Izbassar</h1>
+    <p>Олимпиадное программирование, веб и игры. Шымкент, Казахстан. Это игра: ходи по степи, собирай монеты и заходи в здания.</p>
+  </header>
+
+  <div class="hud" aria-label="Прогресс">
+    <div class="chip"><span class="k">Уровень</span><b id="lvl">1</b></div>
+    <div class="chip"><span class="k">XP</span><span class="bar"><i id="xpb"></i></span><b id="xpt">0</b></div>
+    <div class="chip"><span class="k">Монеты</span><b id="cn">0/10</b></div>
+    <div class="chip"><span class="k">Здания</span><b id="vs">0/6</b></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" role="img" aria-label="Карта портфолио: шесть зданий на степной равнине"></canvas>
+  </div>
+
+  <div class="ctrl">
+    <p class="hint" id="hint" aria-live="polite"></p>
+    <button class="btn" id="act" disabled>Открыть</button>
+  </div>
+  <div class="pad" aria-label="Управление">
+    <button data-k="up" aria-label="Вверх">&uarr;</button>
+    <button data-k="left" aria-label="Влево">&larr;</button>
+    <button data-k="down" aria-label="Вниз">&darr;</button>
+    <button data-k="right" aria-label="Вправо">&rarr;</button>
+  </div>
+
+  <h2>Резюме списком</h2>
+  <p class="lead">То же самое без игры: всё, что лежит в зданиях.</p>
+
+  <div class="cards">
+    <article class="card" id="c-awards"><h3>Олимпиады</h3><div class="body">
+      <ul class="rows">
+        <li><b>Национальная олимпиада по информатике, Казахстан</b><span>Прошёл на национальный уровень и выступил на нём в 8 классе.</span></li>
+        <li><b>Региональная олимпиада по информатике</b><span>Золотая медаль.</span></li>
+        <li><b>Казахстанская олимпиада школ-интернатов (KBO)</b><span>Серебро в 8 классе, бронза в 7 классе.</span></li>
+        <li><b>Евразийская командная олимпиада по информатике</b><span>Выступил на командном соревновании: команда написала хорошо.</span></li>
+      </ul>
+    </div></article>
+
+    <article class="card" id="c-skills"><h3>Навыки</h3><div class="body">
+      <dl class="skills">
+        <div><dt>Программирование</dt><dd><span>C++</span><span>Python</span><span>JavaScript</span></dd></div>
+        <div><dt>Веб</dt><dd><span>HTML5</span><span>CSS3</span></dd></div>
+        <div><dt>Инструменты</dt><dd><span>VS Code</span><span>Git</span><span>Claude Code</span><span>Gemini</span></dd></div>
+        <div><dt>Другое</dt><dd><span>Администрирование Minecraft-серверов</span><span>Настройка плагинов</span><span>Базовое администрирование Linux и серверов</span></dd></div>
+      </dl>
+    </div></article>
+
+    <article class="card" id="c-smp"><h3>ShymBIL SMP</h3><div class="body">
+      <p>Мультиплеерный сервер Minecraft, который я основал и вёл.</p>
+      <ul class="plain">
+        <li>Настройка плагинов и параметров сервера</li>
+        <li>Оптимизация производительности</li>
+        <li>Работа с сообществом игроков</li>
+        <li>Собственные графические ассеты</li>
+      </ul>
+    </div></article>
+
+    <article class="card" id="c-arena"><h3>Arena Strike</h3><div class="body">
+      <p>Браузерный шутер на HTML, CSS и JavaScript.</p>
+      <ul class="plain">
+        <li>Claude Code помогал со структурой кода и отладкой.</li>
+        <li>Исходный код открыт на GitHub.</li>
+      </ul>
+      <p><a href="https://github.com/Erasyl1011/arena-strike" target="_blank" rel="noopener">github.com/Erasyl1011/arena-strike</a></p>
+    </div></article>
+
+    <article class="card" id="c-profiles"><h3>Профили</h3><div class="body">
+      <p>Регулярно решаю алгоритмические задачи на C++.</p>
+      <ul class="rows">
+        <li><a href="https://codeforces.com/profile/IzbasarErasyl_ShymEr2029" target="_blank" rel="noopener">Codeforces</a><span>IzbasarErasyl_ShymEr2029</span></li>
+        <li><a href="https://codeforces.com/profile/erqaas" target="_blank" rel="noopener">Codeforces, второй аккаунт</a><span>erqaas</span></li>
+        <li><a href="https://cses.fi/user/438949" target="_blank" rel="noopener">CSES</a><span>438949</span></li>
+        <li><a href="https://vjudge.net/user/era2334" target="_blank" rel="noopener">VJudge</a><span>era2334</span></li>
+        <li><a href="https://eolymp.com/users/eraaa" target="_blank" rel="noopener">Eolymp</a><span>eraaa</span></li>
+        <li><a href="https://github.com/Erasyl1011" target="_blank" rel="noopener">GitHub</a><span>Erasyl1011</span></li>
+        <li><a href="https://stepik.org/users/971701125/profile" target="_blank" rel="noopener">Stepik</a><span>971701125</span></li>
+      </ul>
+    </div></article>
+
+    <article class="card" id="c-contact"><h3>Связь</h3><div class="body">
+      <p>Шымкент, Казахстан.</p>
+      <p class="mail"><span>eizbasar@internet.ru</span><button class="btn ghost" data-copy="eizbasar@internet.ru">Скопировать</button></p>
+    </div></article>
+  </div>
+</div>
+
+<div class="overlay" id="ov" hidden>
+  <div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dt" tabindex="-1">
+    <div class="dhead"><h2 id="dt"></h2><button class="btn ghost" id="dx">Закрыть</button></div>
+    <div id="db"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var W = 480, H = 320, SPEED = 74, COIN_XP = 10, VISIT_XP = 20, MAX_XP = 10 * COIN_XP + 6 * VISIT_XP;
+  var INK = '#1c2b33', GOLD = '#f2b90f', BLUE = '#0098b4', PAPER = '#fbf6e4';
+  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  cv.width = W; cv.height = H;
+  var reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var $ = function (id) { return document.getElementById(id); };
+
+  function mk(id, name, x, y, c, r, icon) {
+    return { id: id, name: name, x: x, y: y, w: 72, h: 52, c: c, r: r, icon: icon, doorX: x + 36, doorY: y + 52 + 12 };
+  }
+  var B = [
+    mk('awards', 'Олимпиады', 36, 36, '#f2b90f', '#b88a00', 'cup'),
+    mk('skills', 'Навыки', 204, 36, '#1c2b33', '#0c161b', 'term'),
+    mk('smp', 'ShymBIL SMP', 372, 36, '#6f9d3a', '#4d7a22', 'blocks'),
+    mk('arena', 'Arena Strike', 36, 212, '#0098b4', '#006f85', 'aim'),
+    mk('profiles', 'Профили', 204, 212, '#fbf6e4', '#c9b673', 'bars'),
+    mk('contact', 'Связь', 372, 212, '#c0463a', '#8c2f26', 'mail')
+  ];
+  var byId = {};
+  B.forEach(function (b) { byId[b.id] = b; });
+  var YURTS = [{ x: 117, y: 110, w: 26, h: 20 }, { x: 338, y: 184, w: 26, h: 22 }];
+  var SOLIDS = B.concat(YURTS);
+  var coins = [[56,130],[170,132],[250,118],[320,128],[420,130],[56,190],[170,192],[250,192],[420,192],[120,160]]
+    .map(function (p) { return { x: p[0], y: p[1], got: false }; });
+
+  /* ---------- static background ---------- */
+  var bg = document.createElement('canvas'); bg.width = W; bg.height = H;
+  var g = bg.getContext('2d');
+  function px(c, x, y, w, h) { g.fillStyle = c; g.fillRect(x, y, w, h); }
+  function rnd(seed) { var s = seed; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+  function yurt(y0) {
+    var x = y0.x, y = y0.y, w = y0.w, h = y0.h;
+    px('rgba(28,43,51,.25)', x + 3, y + 4, w, h);
+    px(INK, x - 1, y + 5, w + 2, h - 4);
+    px('#f4efe0', x, y + 6, w, h - 6);
+    var ins = [8, 5, 3, 2, 1, 0];
+    for (var k = 0; k < 6; k++) { px(INK, x + ins[k] - 1, y + k, w - 2 * ins[k] + 2, 1); px('#f4efe0', x + ins[k], y + k, w - 2 * ins[k], 1); }
+    px(BLUE, x, y + 10, w, 3);
+    px(GOLD, x + w / 2 - 1, y - 2, 2, 3);
+    px(INK, x + w / 2 - 3, y + h - 7, 6, 7);
+  }
+
+  function icon(b) {
+    var cx = b.x + 36, cy = b.y + 25;
+    if (b.icon === 'cup') {
+      px(INK, cx - 6, cy - 8, 12, 8); px(INK, cx - 9, cy - 7, 3, 5); px(INK, cx + 6, cy - 7, 3, 5);
+      px(INK, cx - 1, cy, 2, 5); px(INK, cx - 5, cy + 5, 10, 2); px(GOLD, cx - 3, cy - 6, 2, 3);
+    } else if (b.icon === 'term') {
+      px(BLUE, cx - 14, cy - 9, 28, 18);
+      px(PAPER, cx - 10, cy - 4, 2, 2); px(PAPER, cx - 8, cy - 2, 2, 2); px(PAPER, cx - 10, cy, 2, 2);
+      px(GOLD, cx - 4, cy + 2, 8, 2);
+    } else if (b.icon === 'blocks') {
+      [[cx - 12, cy], [cx - 4, cy], [cx + 4, cy], [cx - 8, cy - 8], [cx, cy - 8]].forEach(function (p) {
+        px('#8a5a33', p[0], p[1], 8, 8); px('#5f9e2d', p[0], p[1], 8, 3); px('#6e4526', p[0] + 2, p[1] + 4, 2, 2);
+      });
+    } else if (b.icon === 'aim') {
+      px(PAPER, cx - 8, cy - 8, 16, 16); px(b.c, cx - 6, cy - 6, 12, 12);
+      px(PAPER, cx - 1, cy - 12, 2, 24); px(PAPER, cx - 12, cy - 1, 24, 2); px(GOLD, cx - 2, cy - 2, 4, 4);
+    } else if (b.icon === 'bars') {
+      px(BLUE, cx - 12, cy - 8, 22, 4); px(GOLD, cx - 12, cy - 2, 16, 4); px(INK, cx - 12, cy + 4, 10, 4);
+    } else if (b.icon === 'mail') {
+      px(PAPER, cx - 12, cy - 7, 24, 16);
+      for (var i = 0; i < 12; i++) { var yy = cy - 7 + Math.floor(i / 1.7); px(INK, cx - 12 + i, yy, 1, 1); px(INK, cx + 11 - i, yy, 1, 1); }
+    }
+  }
+
+  function building(b) {
+    var x = b.x, y = b.y, w = b.w, h = b.h;
+    px('rgba(28,43,51,.25)', x + 3, y + 4, w, h);
+    px(INK, x - 2, y - 2, w + 4, h + 4);
+    px(b.c, x, y, w, h);
+    px(b.r, x, y, w, 12);
+    for (var i = 4; i < w; i += 8) px('rgba(0,0,0,.14)', x + i, y, 2, 12);
+    icon(b);
+    px(INK, x + w / 2 - 6, y + h - 14, 12, 14);
+    px(GOLD, x + w / 2 + 3, y + h - 7, 2, 2);
+  }
+
+  function drawBG() {
+    px('#d8c78a', 0, 0, W, H);
+    var r = rnd(7);
+    for (var i = 0; i < 280; i++) {
+      var x = Math.floor(r() * W), y = Math.floor(r() * H);
+      px(r() < 0.5 ? '#c9b673' : '#e2d39b', x, y, 2, r() < 0.5 ? 1 : 3);
+    }
+    var roads = [[0, 150, W, 20], [0, 268, W, 20], [8, 170, 20, 118], [452, 170, 20, 118]];
+    B.slice(0, 3).forEach(function (b) { roads.push([b.x + 26, 88, 20, 62]); });
+    roads.forEach(function (q) { px('#c9b673', q[0] - 1, q[1] - 1, q[2] + 2, q[3] + 2); });
+    roads.forEach(function (q) { px('#e7dba9', q[0], q[1], q[2], q[3]); });
+    YURTS.forEach(yurt);
+    B.forEach(building);
+  }
+  drawBG();
+
+  /* ---------- state ---------- */
+  var px0 = 240, py0 = 160, face = 1, anim = 0, moved = false;
+  var keys = { left: 0, right: 0, up: 0, down: 0 };
+  var target = null, pending = null, pendT = 0, stuck = 0;
+  var near = null, nearId = '';
+  var xp = 0, visited = {}, paused = false, finished = false;
+
+  function hit(x, y) {
+    if (x < 5 || x > W - 5 || y < 5 || y > H - 5) return true;
+    for (var i = 0; i < SOLIDS.length; i++) {
+      var s = SOLIDS[i];
+      if (x + 5 > s.x && x - 5 < s.x + s.w && y + 5 > s.y && y - 5 < s.y + s.h) return true;
+    }
+    return false;
+  }
+  function calcNear() {
+    var best = null, bd = 1e9;
+    for (var i = 0; i < B.length; i++) {
+      var b = B[i];
+      if (px0 > b.x - 14 && px0 < b.x + b.w + 14 && py0 > b.y - 14 && py0 < b.y + b.h + 14) {
+        var d = Math.hypot(px0 - b.doorX, py0 - b.doorY);
+        if (d < bd) { bd = d; best = b; }
+      }
+    }
+    return best;
+  }
+
+  /* ---------- HUD ---------- */
+  var toastT = 0;
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2400);
+  }
+  function level() { return 1 + Math.floor(xp / 40); }
+  function hud() {
+    var got = coins.filter(function (c) { return c.got; }).length, vs = Object.keys(visited).length;
+    $('lvl').textContent = level();
+    $('xpt').textContent = xp;
+    $('xpb').style.width = Math.min(100, xp / MAX_XP * 100) + '%';
+    $('cn').textContent = got + '/' + coins.length;
+    $('vs').textContent = vs + '/' + B.length;
+    return { got: got, vs: vs };
+  }
+  function addXP(n, msg) {
+    var before = level(); xp += n;
+    var s = hud();
+    toast(level() > before ? 'Уровень ' + level() + '! ' + msg : msg);
+    if (!finished && s.got === coins.length && s.vs === B.length) {
+      finished = true;
+      setTimeout(function () { toast('Игра пройдена на 100%. Контакты в здании «Связь».'); }, 2600);
+    }
+  }
+  function setHint() {
+    var h = $('hint'), a = $('act');
+    if (near) { h.textContent = 'Рядом: ' + near.name + '. Нажми E или «Открыть».'; a.disabled = false; a.textContent = 'Открыть: ' + near.name; }
+    else { h.textContent = 'Ходи стрелками или WASD, на телефоне кнопками или тапом по карте. Жми на названия зданий, чтобы дойти сразу.'; a.disabled = true; a.textContent = 'Открыть'; }
+  }
+
+  /* ---------- panel ---------- */
+  var ov = $('ov'), dlg = $('dlg'), lastFocus = null;
+  function openPanel(id) {
+    var card = $('c-' + id), b = byId[id];
+    if (!card || !b) return;
+    $('dt').textContent = card.querySelector('h3').textContent;
+    $('db').innerHTML = card.querySelector('.body').innerHTML;
+    lastFocus = document.activeElement;
+    ov.hidden = false; paused = true; clearKeys(); target = null; pending = null;
+    dlg.scrollTop = 0; dlg.focus();
+    if (!visited[id]) {
+      visited[id] = true;
+      var t = document.querySelector('.tag[data-id="' + id + '"]'); if (t) t.classList.add('seen');
+      addXP(VISIT_XP, '+' + VISIT_XP + ' XP: ' + b.name);
+    }
+  }
+  function closePanel() {
+    ov.hidden = true; paused = false;
+    if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+  }
+  $('dx').addEventListener('click', closePanel);
+  ov.addEventListener('click', function (e) { if (e.target === ov) closePanel(); });
+
+  /* ---------- input ---------- */
+  function clearKeys() { keys.left = keys.right = keys.up = keys.down = 0; }
+  var KMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down' };
+  function stageVisible() {
+    var r = $('stage').getBoundingClientRect();
+    return r.top < window.innerHeight * 0.7 && r.bottom > window.innerHeight * 0.3;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!ov.hidden) {
+      if (e.key === 'Escape') { closePanel(); }
+      else if (e.key === 'Tab') {
+        var f = dlg.querySelectorAll('button, a[href]');
+        if (!f.length) return;
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === dlg)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+      return;
+    }
+    var k = KMAP[e.code];
+    if (k && stageVisible()) { keys[k] = 1; e.preventDefault(); return; }
+    if (e.code === 'KeyE' && near) openPanel(near.id);
+  });
+  document.addEventListener('keyup', function (e) { var k = KMAP[e.code]; if (k) keys[k] = 0; });
+  window.addEventListener('blur', clearKeys);
+
+  Array.prototype.forEach.call(document.querySelectorAll('.pad button'), function (btn) {
+    var k = btn.getAttribute('data-k');
+    btn.addEventListener('pointerdown', function (e) { e.preventDefault(); keys[k] = 1; });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) { btn.addEventListener(n, function () { keys[k] = 0; }); });
+    btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  });
+
+  function go(id) {
+    var b = byId[id];
+    if (near && near.id === id) { openPanel(id); return; }
+    target = { x: b.doorX, y: b.doorY }; pending = id; pendT = 0; stuck = 0;
+  }
+  cv.addEventListener('pointerdown', function (e) {
+    if (paused) return;
+    var r = cv.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+    for (var i = 0; i < B.length; i++) {
+      var b = B[i];
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) { go(b.id); return; }
+    }
+    pending = null; target = { x: x, y: y }; stuck = 0;
+  });
+  $('act').addEventListener('click', function () { if (near) openPanel(near.id); });
+
+  B.forEach(function (b) {
+    var t = document.createElement('button');
+    t.className = 'tag'; t.setAttribute('data-id', b.id);
+    t.style.left = ((b.x + b.w / 2) / W * 100) + '%';
+    t.style.top = ((b.y - 4) / H * 100) + '%';
+    t.textContent = b.name;
+    t.setAttribute('aria-label', 'Открыть: ' + b.name);
+    t.addEventListener('click', function () { go(b.id); });
+    $('stage').appendChild(t);
+  });
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-copy]') : null;
+    if (!btn) return;
+    var text = btn.getAttribute('data-copy'), label = btn.textContent;
+    function fallback() {
+      var span = btn.parentNode.querySelector('span');
+      if (span && window.getSelection) {
+        var rg = document.createRange(); rg.selectNodeContents(span);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+      }
+      toast('Адрес выделен, скопируй вручную.');
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Скопировано'; setTimeout(function () { btn.textContent = label; }, 1600);
+      }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  /* ---------- update + draw ---------- */
+  function step(dt) {
+    var dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), dy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+    if (dx || dy) { target = null; pending = null; var l = Math.hypot(dx, dy); dx /= l; dy /= l; }
+    else if (target) {
+      var tx = target.x - px0, ty = target.y - py0, d = Math.hypot(tx, ty);
+      if (d < 2) target = null; else { dx = tx / d; dy = ty / d; }
+    }
+    var ox = px0, oy = py0;
+    var nx = px0 + dx * SPEED * dt; if (!hit(nx, py0)) px0 = nx;
+    var ny = py0 + dy * SPEED * dt; if (!hit(px0, ny)) py0 = ny;
+    moved = Math.abs(px0 - ox) + Math.abs(py0 - oy) > 0.01;
+    if (dx) face = dx > 0 ? 1 : -1;
+    if (moved) anim += dt * 9;
+    if (target && !moved) { stuck += dt; if (stuck > 0.5) target = null; } else stuck = 0;
+
+    for (var i = 0; i < coins.length; i++) {
+      var c = coins[i];
+      if (!c.got && Math.hypot(c.x - px0, c.y - py0) < 9) { c.got = true; addXP(COIN_XP, '+' + COIN_XP + ' XP'); }
+    }
+    near = calcNear();
+    var id = near ? near.id : '';
+    if (id !== nearId) { nearId = id; setHint(); }
+    if (pending) {
+      pendT += dt;
+      if ((near && near.id === pending) || pendT > 4) { var p = pending; pending = null; target = null; openPanel(p); }
+    }
+  }
+
+  function drawPlayer() {
+    var bob = (moved && !reduce && Math.floor(anim) % 2) ? -1 : 0;
+    var x = Math.round(px0), y = Math.round(py0);
+    ctx.fillStyle = 'rgba(28,43,51,.28)'; ctx.fillRect(x - 5, y + 5, 10, 3);
+    var step1 = moved && Math.floor(anim) % 2 ? 1 : 0;
+    ctx.fillStyle = INK; ctx.fillRect(x - 4, y + 2 + bob, 3, 4 - step1); ctx.fillRect(x + 1, y + 2 + bob, 3, 3 + step1);
+    ctx.fillStyle = BLUE; ctx.fillRect(x - 5, y - 4 + bob, 10, 7);
+    ctx.fillStyle = GOLD; ctx.fillRect(x - 1, y - 2 + bob, 2, 4);
+    ctx.fillStyle = '#e8b48a'; ctx.fillRect(x - 4, y - 11 + bob, 8, 7);
+    ctx.fillStyle = INK; ctx.fillRect(x - 4, y - 12 + bob, 8, 3); ctx.fillRect(x - 5, y - 11 + bob, 1, 5); ctx.fillRect(x + 4, y - 11 + bob, 1, 5);
+    ctx.fillRect(x + (face > 0 ? 0 : -3), y - 8 + bob, 1, 2); ctx.fillRect(x + (face > 0 ? 2 : -1), y - 8 + bob, 1, 2);
+  }
+
+  function draw(t) {
+    ctx.drawImage(bg, 0, 0);
+    for (var i = 0; i < B.length; i++) {
+      if (visited[B[i].id]) { ctx.fillStyle = INK; ctx.fillRect(B[i].x + B[i].w - 11, B[i].y + 2, 9, 9); ctx.fillStyle = GOLD; ctx.fillRect(B[i].x + B[i].w - 10, B[i].y + 3, 7, 7); }
+    }
+    if (near) { ctx.strokeStyle = GOLD; ctx.lineWidth = 2; ctx.strokeRect(near.x - 5, near.y - 5, near.w + 10, near.h + 10); }
+    for (var j = 0; j < coins.length; j++) {
+      var c = coins[j]; if (c.got) continue;
+      var cy = Math.round(c.y + (reduce ? 0 : Math.sin(t / 250 + j) * 1.5)), cx = c.x;
+      ctx.fillStyle = INK; ctx.fillRect(cx - 5, cy - 4, 10, 8); ctx.fillRect(cx - 4, cy - 5, 8, 10);
+      ctx.fillStyle = GOLD; ctx.fillRect(cx - 4, cy - 3, 8, 6); ctx.fillRect(cx - 3, cy - 4, 6, 8);
+      ctx.fillStyle = '#fff2a8'; ctx.fillRect(cx - 2, cy - 3, 2, 3);
+    }
+    drawPlayer();
+  }
+
+  var last = 0;
+  function loop(t) {
+    var dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+    if (!paused) step(dt);
+    draw(t);
+    requestAnimationFrame(loop);
+  }
+  setHint(); hud();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
